@@ -2,6 +2,7 @@ import { NA, TAG, money, dateVN, dayOfMonth, cardAmountKind } from './format.js'
 import { PEOPLE, cardMode } from './validate.js';
 import { fold } from './parse.js';
 import { buildReport, unitShares, kindOf, monthLong } from './report.js';
+import { buildHistory } from './history.js';
 import { debtSummary, dueItems, upcoming, overdueUnlogged, daysBetween } from './overview.js';
 
 export const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -117,7 +118,7 @@ function overview(d, person, ctx) {
 
 const nfm = new Intl.NumberFormat('vi-VN');
 
-function reportView(d, person, ctx) {
+function forecastView(d, person, ctx) {
   const r = buildReport(d, person, ctx.today);
   const scope = ctx.pieScope;
   const sh = unitShares(r, scope);
@@ -156,9 +157,42 @@ function reportView(d, person, ctx) {
     <p class="note">Chưa gồm khoản vay mới và sao kê thẻ chưa phát sinh.</p>`;
 }
 
+function historyView(d, person, ctx) {
+  const h = buildHistory(d, person, ctx.today);
+  if (!h.points.length) return `<div class="card"><h2 class="ct">Lịch sử dư nợ</h2><p class="none">Chưa có: Nhật ký chưa ghi khoản trả nào của ${esc(person === 'Tất cả' ? 'Trang và Dũng' : person)}.</p></div>`;
+  const swatch = (c, extra = '') => `<i class="sw" style="background:${c};${extra}"></i>`;
+  const legend = `<ul class="legend">
+    <li>${swatch('var(--text)')}Tổng ${tag('mixed')}</li>
+    ${h.hasLoans ? `<li>${swatch('var(--ch-0)', 'background-image:repeating-linear-gradient(90deg,transparent 0 4px,var(--card) 4px 6px)')}Khoản vay còn lại ${tag('estimate')}</li>` : ''}
+    ${h.hasCards ? `<li>${swatch('var(--ch-4)')}Thẻ: dư nợ kỳ ${tag('confirmed')}</li>` : ''}</ul>`;
+  const rows = [...h.points].reverse().map((p) => `<article class="card">
+      <header><b>${esc(monthLong(p.key))}</b><span class="id">mốc ${esc(dateVN(p.date))}</span></header>
+      ${field('Khoản vay còn lại', money(p.vay), 'estimate')}
+      ${field('Thẻ: dư nợ kỳ', money(p.the), 'confirmed')}
+      ${field('Tổng', money(p.total), p.total != null ? kindOf(p.the ?? 0, p.vay ?? 0) : null)}
+    </article>`).join('');
+  return `<div class="card"><h2 class="ct">Dư nợ qua các tháng</h2>
+      <p class="sub">Khoản vay dựng ngược từ Nhật ký nên là số ước tính. Thẻ dùng dư nợ kỳ đã ghi trong Nhật ký. Mốc "Nay" là hôm nay.</p>
+      ${h.enough ? '' : '<p class="note">Chưa đủ mốc có số đầy đủ để nối thành đường (cần ít nhất 2).</p>'}
+      <div class="cwrap" id="linewrap"><canvas id="line" role="img" aria-label="Biểu đồ đường: dư nợ qua các tháng, chi tiết ở các thẻ bên dưới"></canvas></div>
+      ${legend}</div>
+    ${h.warnings.length ? `<div class="warn"><b>Lưu ý:</b><ul>${h.warnings.map((x) => `<li>${esc(x)}</li>`).join('')}</ul></div>` : ''}
+    <h2 class="grp">Chi tiết từng mốc</h2>${rows}`;
+}
+
+function reportScreen(d, person, ctx) {
+  const v = ctx.reportView;
+  return `<div class="seg rv" role="group" aria-label="Loại báo cáo">
+      <button type="button" data-rv="forecast" aria-pressed="${v === 'forecast'}">Dự kiến 7 tháng</button>
+      <button type="button" data-rv="history" aria-pressed="${v === 'history'}">Lịch sử dư nợ</button></div>
+    <div class="exp"><button type="button" data-export="csv">Tải CSV</button><button type="button" data-export="png">Lưu ảnh</button></div>
+    <p id="exportMsg" class="note" role="status"></p>
+    ${v === 'history' ? historyView(d, person, ctx) : forecastView(d, person, ctx)}`;
+}
+
 export const TABS = [
   { id: 'tongquan', label: 'Tổng quan', render: overview },
-  { id: 'baocao', label: 'Báo cáo', render: reportView },
+  { id: 'baocao', label: 'Báo cáo', render: reportScreen },
   { id: 'vay', label: 'Khoản vay', render: (d, p) => grouped(filterPerson(d.khoanVay, p), p, loanCard) },
   { id: 'the', label: 'Thẻ', render: (d, p) => grouped(filterPerson(d.the, p), p, cardCard) },
   {

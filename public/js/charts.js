@@ -60,3 +60,26 @@ export function drawPie(canvas, shares) {
     },
   }));
 }
+
+export function drawLine(canvas, h) {
+  const surface = css('--card');
+  const ds = (label, key, color, extra = {}) => ({ label, data: h.points.map((p) => p[key]), borderColor: color, backgroundColor: color, borderWidth: 2, pointRadius: 3, pointBackgroundColor: surface, pointBorderColor: color, pointBorderWidth: 2, tension: 0, spanGaps: false, ...extra });
+  const sets = [ds('Tổng', 'total', css('--text'), { borderWidth: 3, pointRadius: 4 })];
+  if (h.hasLoans) sets.push(ds('Khoản vay còn lại · Ước tính', 'vay', css('--ch-0'), { borderDash: [6, 4] }));
+  if (h.hasCards) sets.push(ds('Thẻ: dư nợ kỳ · Đã xác nhận', 'the', css('--ch-4')));
+  charts.push(new window.Chart(canvas, {
+    type: 'line',
+    data: { labels: h.points.map((p, i) => (i === h.points.length - 1 ? 'Nay' : p.label)), datasets: sets },
+    options: {
+      responsive: true, maintainAspectRatio: false, animation: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { title: (it) => { const d = h.points[it[0].dataIndex].date; return `${d.slice(8)}/${d.slice(5, 7)}/${d.slice(0, 4)}`; }, label: (i) => `${i.dataset.label}: ${full(i.parsed.y)}` } },
+      },
+      scales: {
+        x: { grid: { display: false }, ticks: { color: css('--muted'), maxRotation: 0 } },
+        y: { beginAtZero: true, grid: { color: css('--line') }, border: { display: false }, ticks: { color: css('--muted'), callback: compact, maxTicksLimit: 5 } },
+      },
+    },
+  }));
+}

@@ -11,7 +11,7 @@ test('normalize: dữ liệu mẫu đọc đủ 4 tab + thông số', () => {
   const d = normalize(load('sample'));
   assert.equal(d.khoanVay.length, 4);
   assert.equal(d.the.length, 5);
-  assert.equal(d.nhatKy.length, 6);
+  assert.equal(d.nhatKy.length, 18);
   assert.equal(d.linhHoat.length, 0);
   assert.deepEqual(d.params, { phiDao: 0.03, hanMucMucTieu: 200000, nhacTruocNgay: 3 });
   assert.equal(d.the[0].khaDung, null, 'ô trống phải là null, không phải 0');
