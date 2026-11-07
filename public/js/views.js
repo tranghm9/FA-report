@@ -1,6 +1,7 @@
 import { NA, TAG, money, dateVN, dayOfMonth, cardAmountKind } from './format.js';
 import { PEOPLE, cardMode } from './validate.js';
 import { fold } from './parse.js';
+import { buildReport, unitShares, kindOf, monthLong } from './report.js';
 import { debtSummary, dueItems, upcoming, overdueUnlogged, daysBetween } from './overview.js';
 
 export const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -114,8 +115,50 @@ function overview(d, person, ctx) {
   return `<p class="meta">Hôm nay: ${esc(dateVN(ctx.today))}${ctx.demo ? ' (ngày của dữ liệu mẫu)' : ''}</p>` + people.map((p) => personOverview(d, p, ctx.today, due)).join('');
 }
 
+const nfm = new Intl.NumberFormat('vi-VN');
+
+function reportView(d, person, ctx) {
+  const r = buildReport(d, person, ctx.today);
+  const scope = ctx.pieScope;
+  const sh = unitShares(r, scope);
+  const t = r.totals;
+  const unit = (m) => (person === 'Tất cả' ? Object.entries(m.byPerson).map(([k, v]) => `${esc(k)} ${esc(money(v))}`).join(' · ') : '');
+  const swatch = (c, extra = '') => `<i class="sw" style="background:${c};${extra}"></i>`;
+  const barLegend = `<ul class="legend">
+    <li>${swatch('var(--ch-0)')}Khoản vay ${tag('confirmed')}</li>
+    <li>${swatch('var(--ch-4)')}Thẻ ${tag('confirmed')}</li>
+    <li>${swatch('var(--ch-4)', 'background-image:repeating-linear-gradient(135deg,transparent 0 3px,var(--card) 3px 5px)')}Thẻ ${tag('estimate')}</li></ul>`;
+  const pieLegend = sh.rows.length
+    ? `<ul class="legend rows">${sh.rows.map((x, i) => `<li>${swatch(`var(--ch-${x.other ? 'other' : i})`)}<span class="nm">${esc(x.name)}</span><span class="am">${esc(money(x.total))} · ${Math.round(x.pct * 100)}%${tag(x.kind)}</span></li>`).join('')}</ul>`
+    : '<p class="none">Chưa có khoản nào.</p>';
+  const months = r.months.map((m) => `<article class="card">
+      <header><b>${esc(monthLong(m.key))}</b></header>
+      ${field('Khoản vay', m.vay ? money(m.vay) : null, 'confirmed')}
+      ${field('Thẻ', m.theOk + m.theEst ? money(m.theOk + m.theEst) : null, kindOf(m.theOk, m.theEst))}
+      ${field('Tổng dự kiến', m.total ? money(m.total) : null, kindOf(m.vay + m.theOk, m.theEst))}
+      ${unit(m) ? `<p class="note">${unit(m)}</p>` : ''}
+    </article>`).join('');
+  const issues = [...r.missing.map((x) => `Chưa tính: ${x}`), ...r.notes];
+  return `<p class="meta">${esc(person === 'Tất cả' ? 'Cả Trang và Dũng' : person)} · từ ${esc(monthLong(r.keys[0]))} đến ${esc(monthLong(r.keys[r.keys.length - 1]))}</p>
+    <div class="card"><h2 class="ct">Dự kiến phải trả mỗi tháng</h2>
+      <p class="sub">Cả kỳ: ${esc(money(t.all))} · Thẻ các tháng sau lấy như kỳ hiện tại (chưa có sao kê) nên là số ước tính.</p>
+      <div class="cwrap" id="barwrap"><canvas id="bar" role="img" aria-label="Biểu đồ cột: số tiền dự kiến phải trả mỗi tháng, chi tiết ở các thẻ bên dưới"></canvas></div>
+      ${barLegend}
+    </div>
+    <div class="card"><div class="row"><h2 class="ct">Cơ cấu theo đơn vị</h2>
+      <div class="seg mini" role="group" aria-label="Phạm vi cơ cấu"><button type="button" data-pie="month" aria-pressed="${scope === 'month'}">Tháng này</button><button type="button" data-pie="all" aria-pressed="${scope === 'all'}">${r.months.length} tháng</button></div></div>
+      <div class="cwrap pie" id="piewrap"><canvas id="pie" role="img" aria-label="Biểu đồ tròn: cơ cấu theo đơn vị, chi tiết ở danh sách bên dưới"></canvas></div>
+      ${pieLegend}
+    </div>
+    ${issues.length ? `<div class="warn"><b>Lưu ý:</b><ul>${issues.map((x) => `<li>${esc(x)}</li>`).join('')}</ul></div>` : ''}
+    ${r.earlier.count ? `<p class="note">Còn ${r.earlier.count} kỳ quá hạn từ trước tháng này (${esc(money(r.earlier.amount))}), chưa tính vào biểu đồ.</p>` : ''}
+    <h2 class="grp">Chi tiết từng tháng</h2>${months}
+    <p class="note">Chưa gồm khoản vay mới và sao kê thẻ chưa phát sinh.</p>`;
+}
+
 export const TABS = [
   { id: 'tongquan', label: 'Tổng quan', render: overview },
+  { id: 'baocao', label: 'Báo cáo', render: reportView },
   { id: 'vay', label: 'Khoản vay', render: (d, p) => grouped(filterPerson(d.khoanVay, p), p, loanCard) },
   { id: 'the', label: 'Thẻ', render: (d, p) => grouped(filterPerson(d.the, p), p, cardCard) },
   {

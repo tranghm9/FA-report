@@ -39,7 +39,8 @@ SPL và Momo VTS: luôn trả toàn bộ, không có số tối thiểu (để t
 ## Tiến độ
 - M1 (xong): khung app, dữ liệu mẫu, 3 màn hình bảng (Khoản vay, Thẻ, Nhật ký), cảnh báo mâu thuẫn, test.
 - M2 (xong): màn Tổng quan (`overview.js`, tab mặc định): dư nợ hiện tại, quá hạn chưa có ghi nhận, đến hạn trong 7 ngày; tách Trang/Dũng. Giao diện đổi sang hồng pastel (token màu ở đầu `styles.css`; xanh mint = Đã xác nhận, vàng = Ước tính, đỏ = cảnh báo/quá hạn).
-- M3–M5: xem đề bài ban đầu (Báo cáo tháng; Lịch sử + xuất CSV/ảnh; hoàn thiện PWA + deploy).
+- M3 (xong): tab Báo cáo (`report.js`, `charts.js`): cột chồng 7 tháng, tròn theo đơn vị (Tháng này / 7 tháng), chi tiết từng tháng, theo bộ lọc người.
+- M4–M5: xem đề bài ban đầu (Lịch sử dư nợ + xuất CSV/ảnh; hoàn thiện PWA + deploy).
 
 ## Quy tắc nghiệp vụ đã chốt (M2)
 - **Dư nợ hiện tại** (người dùng chọn "cách 1") = Khoản vay còn lại + Thẻ dư nợ kỳ. Nhãn **Ước tính**, kèm số **Đến kỳ** (Đã xác nhận).
@@ -50,3 +51,11 @@ SPL và Momo VTS: luôn trả toàn bộ, không có số tối thiểu (để t
 - **Đến hạn trong 7 ngày**: hạn từ hôm nay đến hôm nay+7 (tính cả hai đầu). Hạn = Hạn kỳ kế tiếp (vay), Hạn thanh toán (thẻ), Hạn thanh toán (Linh hoạt). Số tiền: vay = Số tiền/kỳ (Đã xác nhận); thẻ = Số tiền dự kiến (Toàn bộ: Đã xác nhận, Đáo: Ước tính).
 - **Quá hạn chưa có ghi nhận**: hạn < hôm nay và Nhật ký không có dòng nào cùng **Mã** và **Hạn thực tế = hạn đó** (mọi trạng thái đều tính là đã có ghi nhận). Giả định: người dùng ghi đúng ngày hạn vào "Hạn thực tế"; nếu hạn thực tế lệch với hạn trong Sheet thì khoản sẽ bị báo quá hạn (chủ ý: báo thừa còn hơn bỏ sót).
 - "Hôm nay": dữ liệu thật dùng ngày của thiết bị; dữ liệu mẫu dùng ngày của `generatedAt` để kết quả cố định.
+
+## Quy tắc nghiệp vụ đã chốt (M3 - Báo cáo tháng)
+- Cửa sổ: tháng hiện tại + 6 tháng tới (7 cột). Lọc Tất cả/Trang/Dũng dùng chung với các màn khác; ở "Tất cả" mỗi tháng ghi thêm số của từng người.
+- **Khoản vay** (và tab Linh hoạt, tính chung vào "Khoản vay"): mỗi kỳ chưa trả (từ Kỳ kế tiếp đến Tổng số kỳ) rơi vào tháng của Hạn kỳ kế tiếp + i tháng. Nhãn **Đã xác nhận** (lịch hợp đồng). Kỳ rơi vào trước tháng này = quá hạn, không vẽ, chỉ ghi chú riêng.
+- **Thẻ** (người dùng chọn "cách 2"): tháng của "Hạn thanh toán" = Số tiền dự kiến (Toàn bộ: **Đã xác nhận**; Đáo: **Ước tính**). Các tháng sau chưa có sao kê -> lấy bằng số kỳ hiện tại, **Ước tính**. Hạn thanh toán đã cũ (trước tháng này) -> mọi tháng là ước tính + ghi chú cần cập nhật. Hạn rơi vào tháng sau -> tháng này của thẻ đó "chưa có số" + ghi chú (không điền 0).
+- Chưa gồm khoản vay mới và sao kê thẻ chưa phát sinh (luôn ghi chú).
+- Biểu đồ cột: màu = thực thể (Khoản vay = hồng đậm, Thẻ = tím), kết cấu sọc chéo = ước tính. Biểu đồ tròn: tối đa 6 đơn vị + "Khác". Màu biểu đồ là token `--ch-*` trong `styles.css` (đã chạy `validate_palette.js` cho cả sáng/tối; nếu đổi màu phải chạy lại).
+- Mọi biểu đồ đều có bản chữ tương đương (chú giải kèm số + danh sách "Chi tiết từng tháng").
