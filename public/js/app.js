@@ -1,15 +1,16 @@
 import { fetchRaw, normalize } from './data.js';
 import { validate, PEOPLE } from './validate.js';
+import { todayLocal } from './overview.js';
 import { TABS, warningsView, esc } from './views.js';
 
 const cfg = window.APP_CONFIG || { mode: 'fixture' };
 const fixtureName = new URLSearchParams(location.search).get('fixture') || 'sample';
 const $ = (s) => document.querySelector(s);
-const state = { data: null, warnings: [], person: 'Tất cả', tab: 'vay' };
+const state = { data: null, warnings: [], person: 'Tất cả', tab: 'tongquan', today: null };
 
 function currentTab() {
   const id = location.hash.slice(1);
-  return TABS.find((t) => t.id === id) ? id : 'vay';
+  return TABS.find((t) => t.id === id) ? id : 'tongquan';
 }
 
 function render() {
@@ -21,7 +22,7 @@ function render() {
   $('#people').innerHTML = ['Tất cả', ...PEOPLE]
     .map((p) => `<button type="button" data-person="${esc(p)}" aria-pressed="${p === state.person}">${esc(p)}</button>`).join('');
   $('#warnings').innerHTML = warningsView(state.warnings);
-  $('#view').innerHTML = tab.render(state.data, state.person);
+  $('#view').innerHTML = tab.render(state.data, state.person, { today: state.today, demo: cfg.mode === 'fixture' });
   $('#nav').innerHTML = TABS.map((t) => `<a href="#${t.id}" ${t.id === state.tab ? 'aria-current="page"' : ''}>${esc(t.label)}</a>`).join('');
 }
 
@@ -30,6 +31,8 @@ async function load() {
   try {
     state.data = normalize(await fetchRaw(cfg, fixtureName));
     state.warnings = validate(state.data);
+    // Dữ liệu mẫu dùng ngày của chính nó để kết quả luôn giống nhau; dữ liệu thật dùng ngày hôm nay.
+    state.today = cfg.mode === 'fixture' && state.data.generatedAt ? state.data.generatedAt.slice(0, 10) : todayLocal();
     render();
   } catch (e) {
     $('#warnings').innerHTML = '';

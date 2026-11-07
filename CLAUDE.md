@@ -38,5 +38,15 @@ SPL và Momo VTS: luôn trả toàn bộ, không có số tối thiểu (để t
 
 ## Tiến độ
 - M1 (xong): khung app, dữ liệu mẫu, 3 màn hình bảng (Khoản vay, Thẻ, Nhật ký), cảnh báo mâu thuẫn, test.
-- M2–M5: xem đề bài ban đầu (Tổng quan; Báo cáo tháng; Lịch sử + xuất CSV/ảnh; hoàn thiện PWA + deploy).
-- Câu hỏi nghiệp vụ còn mở: xem phần cuối tin nhắn M1 (định nghĩa "dư nợ hiện tại" ở M2).
+- M2 (xong): màn Tổng quan (`overview.js`, tab mặc định): dư nợ hiện tại, quá hạn chưa có ghi nhận, đến hạn trong 7 ngày; tách Trang/Dũng. Giao diện đổi sang hồng pastel (token màu ở đầu `styles.css`; xanh mint = Đã xác nhận, vàng = Ước tính, đỏ = cảnh báo/quá hạn).
+- M3–M5: xem đề bài ban đầu (Báo cáo tháng; Lịch sử + xuất CSV/ảnh; hoàn thiện PWA + deploy).
+
+## Quy tắc nghiệp vụ đã chốt (M2)
+- **Dư nợ hiện tại** (người dùng chọn "cách 1") = Khoản vay còn lại + Thẻ dư nợ kỳ. Nhãn **Ước tính**, kèm số **Đến kỳ** (Đã xác nhận).
+  - Khoản vay còn lại = (Tổng số kỳ − Kỳ kế tiếp + 1) × Số tiền/kỳ, cộng mọi hợp đồng (ước tính vì giả định không đổi lịch, không phí).
+  - Thẻ = Σ Dư nợ kỳ (sao kê). Không gồm trả góp thẻ chưa lên sao kê (Sheet không có) — luôn ghi chú điều này.
+  - Đến kỳ = số tiền kỳ tới của khoản vay còn nợ + Σ dư nợ kỳ của thẻ.
+  - Dòng thiếu dữ liệu bị loại khỏi tổng và liệt kê "Chưa đủ dữ liệu"; người không có dòng nào -> "Chưa có".
+- **Đến hạn trong 7 ngày**: hạn từ hôm nay đến hôm nay+7 (tính cả hai đầu). Hạn = Hạn kỳ kế tiếp (vay), Hạn thanh toán (thẻ), Hạn thanh toán (Linh hoạt). Số tiền: vay = Số tiền/kỳ (Đã xác nhận); thẻ = Số tiền dự kiến (Toàn bộ: Đã xác nhận, Đáo: Ước tính).
+- **Quá hạn chưa có ghi nhận**: hạn < hôm nay và Nhật ký không có dòng nào cùng **Mã** và **Hạn thực tế = hạn đó** (mọi trạng thái đều tính là đã có ghi nhận). Giả định: người dùng ghi đúng ngày hạn vào "Hạn thực tế"; nếu hạn thực tế lệch với hạn trong Sheet thì khoản sẽ bị báo quá hạn (chủ ý: báo thừa còn hơn bỏ sót).
+- "Hôm nay": dữ liệu thật dùng ngày của thiết bị; dữ liệu mẫu dùng ngày của `generatedAt` để kết quả cố định.

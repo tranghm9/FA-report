@@ -1,6 +1,7 @@
 import { NA, TAG, money, dateVN, dayOfMonth, cardAmountKind } from './format.js';
 import { PEOPLE, cardMode } from './validate.js';
 import { fold } from './parse.js';
+import { debtSummary, dueItems, upcoming, overdueUnlogged, daysBetween } from './overview.js';
 
 export const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
@@ -71,7 +72,50 @@ function logCard(n) {
   </article>`;
 }
 
+const whenText = (n) => (n === 0 ? 'hôm nay' : n > 0 ? `còn ${n} ngày` : `quá ${-n} ngày`);
+
+function dueRow(i, today, late) {
+  const n = daysBetween(today, i.due);
+  const amt = money(i.amount);
+  return `<div class="due${late ? ' late' : ''}">
+    <div><b>${esc(i.name)}</b> <span class="id">${esc(i.ma ?? '')}</span>
+      <p class="sub">${esc(dateVN(i.due))} · ${whenText(n)}${i.log ? ` · <span class="chip${fold(i.log.trangThai) === 'da tra' ? ' ok' : ''}">Nhật ký: ${esc(i.log.trangThai ?? 'có ghi')}</span>` : ''}</p></div>
+    <div class="amt${amt ? '' : ' na'}">${amt ? `${esc(amt)}${tag(i.amountKind)}` : NA}</div>
+  </div>`;
+}
+
+function personOverview(d, person, today, due) {
+  const s = debtSummary(d, person);
+  const mine = due.items.filter((i) => i.chu === person);
+  const soon = upcoming(mine, today, 7);
+  const late = overdueUnlogged(mine, today);
+  const miss = [...s.missing, ...due.missing.filter((m) => m.chu === person).map((m) => m.msg)];
+  const hero = s.hasData
+    ? `<div class="big">${esc(money(s.total))}</div>
+       ${field('Khoản vay còn lại', money(s.loans.total), 'estimate')}
+       ${field('Thẻ: dư nợ đến kỳ', money(s.cards.total), 'confirmed')}
+       ${field('Đến kỳ (vay + thẻ)', money(s.dueNow), 'confirmed')}
+       <p class="note">Chưa gồm phần trả góp thẻ chưa lên sao kê: Sheet không có số này.</p>`
+    : `<div class="big na">${NA}</div>`;
+  return `<section>
+    <h2 class="grp">${esc(person)}</h2>
+    <div class="card hero"><div class="lbl"><span>Dư nợ hiện tại</span>${s.hasData ? tag('estimate') : ''}</div>${hero}</div>
+    ${miss.length ? `<p class="note">Chưa đủ dữ liệu, chưa tính: ${esc(miss.join('; '))}.</p>` : ''}
+    <h3 class="sec">Quá hạn, chưa có ghi nhận <small>${late.length}</small></h3>
+    ${late.length ? late.map((i) => dueRow(i, today, true)).join('') : '<p class="none">Không có khoản nào.</p>'}
+    <h3 class="sec">Đến hạn trong 7 ngày <small>${soon.length}</small></h3>
+    ${soon.length ? soon.map((i) => dueRow(i, today, false)).join('') : '<p class="none">Không có khoản nào.</p>'}
+  </section>`;
+}
+
+function overview(d, person, ctx) {
+  const due = dueItems(d);
+  const people = person === 'Tất cả' ? PEOPLE : [person];
+  return `<p class="meta">Hôm nay: ${esc(dateVN(ctx.today))}${ctx.demo ? ' (ngày của dữ liệu mẫu)' : ''}</p>` + people.map((p) => personOverview(d, p, ctx.today, due)).join('');
+}
+
 export const TABS = [
+  { id: 'tongquan', label: 'Tổng quan', render: overview },
   { id: 'vay', label: 'Khoản vay', render: (d, p) => grouped(filterPerson(d.khoanVay, p), p, loanCard) },
   { id: 'the', label: 'Thẻ', render: (d, p) => grouped(filterPerson(d.the, p), p, cardCard) },
   {
