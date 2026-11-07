@@ -8,9 +8,13 @@ import { buildReport, unitShares, monthLong, kindOf } from './report.js';
 import { dateVN, money, TAG } from './format.js';
 import { TABS, warningsView, esc } from './views.js';
 
-import { readStored, writeStored, clearStored, readLast, writeLast, clearLast, resolveConfig, checkDataUrl } from './settings.js';
+import { readTheme, writeTheme, applyTheme, readStored, writeStored, clearStored, readLast, writeLast, clearLast, resolveConfig, checkDataUrl } from './settings.js';
 
 let cfg = resolveConfig(window.APP_CONFIG, readStored());
+let theme = readTheme();
+const prefersDark = () => !!window.matchMedia?.('(prefers-color-scheme: dark)').matches;
+const setTheme = (mode) => applyTheme(mode, { root: document.documentElement, meta: document.querySelector('meta[name="theme-color"]'), prefersDark: prefersDark() });
+setTheme(theme);
 const fixtureName = new URLSearchParams(location.search).get('fixture') || 'sample';
 const $ = (s) => document.querySelector(s);
 const state = { data: null, warnings: [], person: 'Tất cả', tab: 'tongquan', today: null, pieScope: 'month', reportView: 'forecast', loadError: null, offlineSince: null };
@@ -103,7 +107,7 @@ function render() {
     ? `<div class="offline">${esc(state.loadError)} Đang xem bản đã lưu lúc ${esc(fmtTime(state.offlineSince))}.</div>` : '';
   $('#warnings').innerHTML = settings ? '' : offline + warningsView(state.warnings);
   $('#view').innerHTML = tab.render(state.data, state.person, {
-    cfg, loadError: state.loadError, lastSaved: fmtTime(readLast()?.savedAt), today: state.today, demo: cfg.mode === 'fixture', pieScope: state.pieScope, reportView: state.reportView });
+    cfg, theme, loadError: state.loadError, lastSaved: fmtTime(readLast()?.savedAt), today: state.today, demo: cfg.mode === 'fixture', pieScope: state.pieScope, reportView: state.reportView });
   drawCharts();
   $('#nav').innerHTML = TABS.filter((t) => !t.hidden).map((t) => `<a href="#${t.id}" ${t.id === state.tab ? 'aria-current="page"' : ''}>${esc(t.label)}</a>`).join('');
 }
@@ -160,12 +164,14 @@ document.addEventListener('click', (e) => {
   const ex = e.target.closest('[data-export]');
   if (ex) doExport(ex.dataset.export);
   if (e.target.closest('#retry, #refresh')) load();
+  const th = e.target.closest('[data-theme-set]');
+  if (th) { theme = th.dataset.themeSet; writeTheme(theme); setTheme(theme); render(); } // render lại để biểu đồ lấy màu mới
   if (e.target.closest('#cfgSave')) saveSettings();
   if (e.target.closest('#cfgClear')) { clearStored(); cfg = resolveConfig(window.APP_CONFIG, null); location.hash = 'tongquan'; load(); }
   if (e.target.closest('#cacheClear')) { clearLast(); render(); const m = document.getElementById('cacheMsg'); if (m) m.textContent = 'Đã xóa.'; }
 });
 window.addEventListener('hashchange', render);
-window.matchMedia?.('(prefers-color-scheme: dark)').addEventListener?.('change', render);
+window.matchMedia?.('(prefers-color-scheme: dark)').addEventListener?.('change', () => { setTheme(theme); render(); });
 load();
 
 if ('serviceWorker' in navigator && (location.hostname !== 'localhost' || location.search.includes('sw=1'))) {

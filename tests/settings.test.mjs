@@ -39,3 +39,28 @@ test('checkDataUrl', () => {
   assert.match(checkDataUrl('http://script.google.com/x'), /https/);
   assert.match(checkDataUrl(''), /chưa đúng/);
 });
+
+import { readTheme, writeTheme, applyTheme, THEME_COLOR } from '../public/js/settings.js';
+
+test('giao diện: mặc định theo điện thoại; chỉ nhận giá trị hợp lệ', () => {
+  const s = fake();
+  assert.equal(readTheme(s), 'system');
+  assert.equal(writeTheme('dark', s), true);
+  assert.equal(readTheme(s), 'dark');
+  assert.equal(writeTheme('xanh', s), false);
+  assert.equal(readTheme(s), 'dark');
+  s.setItem('sono.theme', '"lạ"'); assert.equal(readTheme(s), 'system');
+});
+
+test('applyTheme: Sáng/Tối đè lên điện thoại; Theo điện thoại gỡ đúng phần app đã gắn', () => {
+  const root = { dataset: {} }; const meta = { c: '', setAttribute(_, v) { this.c = v; } };
+  assert.equal(applyTheme('dark', { root, meta, prefersDark: false }), 'dark');
+  assert.equal(root.dataset.theme, 'dark'); assert.equal(meta.c, THEME_COLOR.dark);
+  assert.equal(applyTheme('light', { root, meta, prefersDark: true }), 'light'); // điện thoại tối nhưng chọn sáng
+  assert.equal(root.dataset.theme, 'light'); assert.equal(meta.c, THEME_COLOR.light);
+  assert.equal(applyTheme('system', { root, meta, prefersDark: true }), 'dark');
+  assert.equal(root.dataset.theme, undefined); assert.equal(meta.c, THEME_COLOR.dark);
+  const host = { dataset: { theme: 'dark' } }; // thuộc tính do nơi khác gắn: không đụng tới
+  applyTheme('system', { root: host });
+  assert.equal(host.dataset.theme, 'dark');
+});

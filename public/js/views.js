@@ -193,7 +193,13 @@ function reportScreen(d, person, ctx) {
 function settingsView(ctx) {
   const c = ctx.cfg;
   const where = { demo: 'Dữ liệu mẫu (chưa nối Google Sheet)', device: 'Google Sheet thật (cấu hình lưu trên máy này)', env: 'Google Sheet thật (cấu hình lúc chạy thử)' }[c.source];
-  return `<div class="card"><h2 class="ct">Nguồn dữ liệu</h2>
+  const th = ctx.theme;
+  const themeBtn = (v, t) => `<button type="button" data-theme-set="${v}" aria-pressed="${th === v}">${t}</button>`;
+  return `<div class="card"><h2 class="ct">Giao diện</h2>
+      <p class="sub">Chọn sáng hoặc tối cho app, không phụ thuộc chế độ của điện thoại.</p>
+      <div class="seg" role="group" aria-label="Giao diện">${themeBtn('system', 'Theo điện thoại')}${themeBtn('light', 'Sáng')}${themeBtn('dark', 'Tối')}</div>
+    </div>
+    <div class="card"><h2 class="ct">Nguồn dữ liệu</h2>
       <p class="sub">Đang dùng: <b>${esc(where)}</b></p>
       ${ctx.loadError ? `<p class="note err-note">Lần tải gần nhất lỗi: ${esc(ctx.loadError)}</p>` : ''}
       <div class="fld"><label for="cfgUrl">Địa chỉ ứng dụng web (Apps Script)</label>

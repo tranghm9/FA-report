@@ -28,3 +28,28 @@ export function checkDataUrl(v) {
   if (u.protocol !== 'https:') return 'Địa chỉ phải bắt đầu bằng https://';
   return null;
 }
+
+// ---- Giao diện sáng/tối do người dùng chọn: 'system' (theo điện thoại) | 'light' | 'dark'
+const THEME_KEY = 'sono.theme';
+export const THEMES = ['system', 'light', 'dark'];
+export const THEME_COLOR = { light: '#fbc9db', dark: '#1f1419' }; // màu thanh trạng thái trình duyệt
+
+export function readTheme(s) {
+  const v = get(THEME_KEY, s);
+  return THEMES.includes(v) ? v : 'system';
+}
+export const writeTheme = (mode, s) => THEMES.includes(mode) && set(THEME_KEY, mode, s);
+
+/**
+ * Áp dụng giao diện: 'light'/'dark' gắn data-theme lên <html> (đè lên cài đặt điện thoại);
+ * 'system' chỉ gỡ cái do chính app đã gắn (CSS tự theo prefers-color-scheme). Trả về giao diện đang hiển thị.
+ */
+export function applyTheme(mode, { root, meta, prefersDark = false } = {}) {
+  const effective = mode === 'system' ? (prefersDark ? 'dark' : 'light') : mode;
+  if (root) {
+    if (mode === 'system') { if (root.dataset.sonoTheme) { delete root.dataset.theme; delete root.dataset.sonoTheme; } }
+    else { root.dataset.theme = mode; root.dataset.sonoTheme = '1'; }
+  }
+  if (meta) meta.setAttribute('content', THEME_COLOR[effective]);
+  return effective;
+}

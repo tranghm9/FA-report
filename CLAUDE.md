@@ -77,3 +77,6 @@ SPL và Momo VTS: luôn trả toàn bộ, không có số tối thiểu (để t
 - **iPhone/Safari**: phải thêm bằng Safari; có `apple-touch-icon`, meta apple-mobile-web-app-*, ô nhập cỡ chữ 16px (tránh tự phóng to), vùng an toàn `env(safe-area-inset-*)`.
 - **Triển khai**: `.github/workflows/pages.yml` (test -> build -> Pages) chạy khi đẩy lên `main`; cần bật Settings > Pages > Source = GitHub Actions. Repo phải Public để Pages miễn phí; trước khi đẩy lên repo công khai cần gỡ mã Sheet và thông tin riêng khỏi `CLAUDE.md` nếu người dùng muốn.
 - Chưa kiểm tra trên thiết bị thật: Chrome Android và Safari iPhone mới chỉ chạy giả lập (Chromium Pixel 7 / iPhone 14); workflow GitHub Actions chưa chạy thật.
+
+## Giao diện sáng/tối (do người dùng chọn)
+- Cài đặt > Giao diện: Theo điện thoại | Sáng | Tối, lưu `localStorage` (`sono.theme`). Sáng/Tối gắn `data-theme` lên `<html>` (đè prefers-color-scheme); "Theo điện thoại" gỡ thuộc tính do app gắn. Script nhỏ trong `<head>` áp dụng ngay khi tải để không nháy màu; `theme-color` đổi theo. Đổi giao diện phải render lại để biểu đồ đọc lại biến màu `--ch-*`.

@@ -1,6 +1,7 @@
 /* Bảng màu hồng pastel: nền/thẻ hồng nhạt, nút đang chọn hồng pastel đậm hơn, chữ tím-mận để đủ tương phản.
    Xanh mint = Đã xác nhận, vàng đào = Ước tính, đỏ = cảnh báo (khác hẳn hồng để không nhầm). */
 :root {
+  color-scheme: light;
   --bg: #fff5f8; --card: #ffffff; --text: #3b2230; --muted: #86616f; --line: #f6d8e3;
   --brand: #b83a6b; --pick: #fbc9db; --pick-text: #6d1b3f; --on-brand: #ffffff;
   --ok-bg: #d9f3e6; --ok: #1b6847; --est-bg: #ffe8c9; --est: #86500a; --warn-bg: #fde4e1; --warn: #a3201a; --warn-line: #e5736b;
