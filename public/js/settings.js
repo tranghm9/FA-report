@@ -26,6 +26,8 @@ export function checkDataUrl(v) {
   let u;
   try { u = new URL(String(v ?? '').trim()); } catch { return 'Địa chỉ chưa đúng. Hãy dán nguyên địa chỉ "Ứng dụng web" từ Apps Script.'; }
   if (u.protocol !== 'https:') return 'Địa chỉ phải bắt đầu bằng https://';
+  if (u.hostname === 'docs.google.com') return 'Đây là địa chỉ của Google Sheet, không phải địa chỉ Apps Script. Làm Bước 1 trong hướng dẫn để lấy địa chỉ bắt đầu bằng https://script.google.com/macros/s/ và kết thúc bằng /exec.';
+  if (u.hostname === 'script.google.com' && !/\/(exec|dev)$/.test(u.pathname)) return 'Địa chỉ Apps Script phải kết thúc bằng /exec (lấy từ nút "Triển khai" → "Ứng dụng web").';
   return null;
 }
 

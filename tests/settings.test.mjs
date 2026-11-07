@@ -38,6 +38,9 @@ test('checkDataUrl', () => {
   assert.match(checkDataUrl('abc'), /chưa đúng/);
   assert.match(checkDataUrl('http://script.google.com/x'), /https/);
   assert.match(checkDataUrl(''), /chưa đúng/);
+  assert.match(checkDataUrl('https://docs.google.com/spreadsheets/d/abc/edit'), /Google Sheet, không phải/);
+  assert.match(checkDataUrl('https://script.google.com/macros/s/AKfy/edit'), /\/exec/);
+  assert.equal(checkDataUrl('https://script.google.com/macros/s/AKfy/exec'), null);
 });
 
 import { readTheme, writeTheme, applyTheme, THEME_COLOR } from '../public/js/settings.js';
