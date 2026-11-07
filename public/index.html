@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0f766e">
+  <title>Sổ nợ Trang &amp; Dũng</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="top">
+    <div class="row"><h1>Sổ nợ Trang &amp; Dũng</h1><button type="button" id="refresh" aria-label="Tải lại dữ liệu">↻</button></div>
+    <p id="meta" class="meta"></p>
+    <div id="people" class="seg" role="group" aria-label="Lọc theo người"></div>
+  </header>
+  <main>
+    <div id="warnings"></div>
+    <div id="view"></div>
+  </main>
+  <nav id="nav" class="nav" aria-label="Màn hình"></nav>
+  <script src="config.js"></script>
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
