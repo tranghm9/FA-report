@@ -16,10 +16,10 @@ npm test        # chạy kiểm thử
 Sau này sửa `Code.gs` thì phải **Quản lý bản triển khai → Sửa → Phiên bản mới**.
 
 ## Bước 2. Đưa app lên mạng bằng GitHub Pages
-1. Có tài khoản GitHub (github.com). Tạo repo mới tên `so-no-trang-dung`, chọn **Public** (GitHub Pages miễn phí cần repo công khai), **không** tick thêm README hay .gitignore.
+1. Có tài khoản GitHub (github.com). Tạo repo mới tên `FA-report`, chọn **Public** (GitHub Pages miễn phí cần repo công khai), **không** tick thêm README hay .gitignore.
 2. Nhờ Claude đẩy mã lên repo đó (cần cho phiên làm việc quyền ghi vào repo).
 3. Trong repo: **Settings** → **Pages** → mục **Source** chọn **GitHub Actions**. Đợi 1–2 phút ở tab **Actions** đến khi có dấu tích xanh.
-4. App chạy ở `https://TÊN-GITHUB.github.io/so-no-trang-dung/`.
+4. App chạy ở `https://tranghm9.github.io/FA-report/`.
 
 Bản đưa lên mạng **không chứa** địa chỉ hay khóa Google Sheet, nên ai mở link cũng chỉ thấy dữ liệu mẫu. Phương án thay thế: Netlify (`netlify.toml` đã có sẵn).
 
