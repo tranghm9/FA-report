@@ -23,7 +23,9 @@ h1 { font-size: 18px; margin: 0; }
 .top { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 2; background: var(--bg); padding: 10px var(--gx-r) 8px var(--gx-l); border-bottom: 1px solid var(--line); }
 .row { display: flex; justify-content: space-between; align-items: center; }
 .meta { margin: 2px 0 8px; font-size: 12px; color: var(--muted); }
-#refresh { background: none; border: 1px solid var(--line); color: var(--text); border-radius: 8px; width: 40px; height: 40px; font-size: 20px; }
+#refresh, .ibtn { display: inline-flex; align-items: center; justify-content: center; text-decoration: none; background: none; border: 1px solid var(--line); color: var(--text); border-radius: 8px; width: 40px; height: 40px; font-size: 20px; }
+.btns { display: flex; gap: 8px; }
+.ibtn { color: var(--text); border: 1px solid var(--line); border-radius: 8px; }
 .seg { display: flex; gap: 6px; }
 .seg button { flex: 1; min-height: 40px; border: 1px solid var(--line); background: var(--card); color: var(--text); border-radius: 10px; font: inherit; }
 .seg button[aria-pressed="true"] { background: var(--pick); border-color: var(--pick); color: var(--pick-text); font-weight: 700; }
@@ -97,3 +99,13 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 .exp button { flex: 1; min-height: 40px; border: 1px solid var(--line); background: var(--card); color: var(--text); border-radius: 10px; font: inherit; }
 .exp button:disabled { opacity: .6; }
 #exportMsg:empty { display: none; }
+
+/* M5: cài đặt, ngoại tuyến */
+.fld { display: flex; flex-direction: column; gap: 4px; margin: 10px 0; }
+.fld label { color: var(--muted); font-size: 13px; }
+.fld input { font: inherit; font-size: 16px; /* >=16px để iPhone không tự phóng to khi nhập */ min-height: 44px; padding: 0 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--text); width: 100%; min-width: 0; }
+.err-note { color: var(--warn); }
+.offline { background: var(--est-bg); color: var(--est); border-radius: 12px; padding: 10px 14px; margin-bottom: 12px; }
+.lnk { color: var(--brand); margin-left: 8px; }
+:focus-visible { outline: 3px solid var(--brand); outline-offset: 2px; }
+[hidden] { display: none !important; }

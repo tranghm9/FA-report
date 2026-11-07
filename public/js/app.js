@@ -8,10 +8,12 @@ import { buildReport, unitShares, monthLong, kindOf } from './report.js';
 import { dateVN, money, TAG } from './format.js';
 import { TABS, warningsView, esc } from './views.js';
 
-const cfg = window.APP_CONFIG || { mode: 'fixture' };
+import { readStored, writeStored, clearStored, readLast, writeLast, clearLast, resolveConfig, checkDataUrl } from './settings.js';
+
+let cfg = resolveConfig(window.APP_CONFIG, readStored());
 const fixtureName = new URLSearchParams(location.search).get('fixture') || 'sample';
 const $ = (s) => document.querySelector(s);
-const state = { data: null, warnings: [], person: 'Tất cả', tab: 'tongquan', today: null, pieScope: 'month', reportView: 'forecast' };
+const state = { data: null, warnings: [], person: 'Tất cả', tab: 'tongquan', today: null, pieScope: 'month', reportView: 'forecast', loadError: null, offlineSince: null };
 
 function currentTab() {
   const id = location.hash.slice(1);
@@ -85,32 +87,67 @@ async function doExport(kind) {
   }
 }
 
+const fmtTime = (iso) => (iso ? new Date(iso).toLocaleString('vi-VN') : null);
+
 function render() {
-  if (!state.data) return;
   state.tab = currentTab();
+  const settings = state.tab === 'caidat';
+  if (!state.data && !settings) return;
   const tab = TABS.find((t) => t.id === state.tab);
-  const when = state.data.generatedAt ? new Date(state.data.generatedAt).toLocaleString('vi-VN') : 'Chưa có';
+  const when = fmtTime(state.data?.generatedAt) ?? 'Chưa có';
   $('#meta').innerHTML = `${cfg.mode === 'fixture' ? '<span class="chip demo">Dữ liệu mẫu</span> ' : ''}Cập nhật: ${esc(when)}`;
+  $('#people').hidden = settings;
   $('#people').innerHTML = ['Tất cả', ...PEOPLE]
     .map((p) => `<button type="button" data-person="${esc(p)}" aria-pressed="${p === state.person}">${esc(p)}</button>`).join('');
-  $('#warnings').innerHTML = warningsView(state.warnings);
-  $('#view').innerHTML = tab.render(state.data, state.person, { today: state.today, demo: cfg.mode === 'fixture', pieScope: state.pieScope, reportView: state.reportView });
+  const offline = state.offlineSince && !settings
+    ? `<div class="offline">${esc(state.loadError)} Đang xem bản đã lưu lúc ${esc(fmtTime(state.offlineSince))}.</div>` : '';
+  $('#warnings').innerHTML = settings ? '' : offline + warningsView(state.warnings);
+  $('#view').innerHTML = tab.render(state.data, state.person, {
+    cfg, loadError: state.loadError, lastSaved: fmtTime(readLast()?.savedAt), today: state.today, demo: cfg.mode === 'fixture', pieScope: state.pieScope, reportView: state.reportView });
   drawCharts();
-  $('#nav').innerHTML = TABS.map((t) => `<a href="#${t.id}" ${t.id === state.tab ? 'aria-current="page"' : ''}>${esc(t.label)}</a>`).join('');
+  $('#nav').innerHTML = TABS.filter((t) => !t.hidden).map((t) => `<a href="#${t.id}" ${t.id === state.tab ? 'aria-current="page"' : ''}>${esc(t.label)}</a>`).join('');
 }
 
 async function load() {
-  $('#view').innerHTML = '<p class="empty">Đang tải…</p>';
+  if (currentTab() !== 'caidat') $('#view').innerHTML = '<p class="empty">Đang tải…</p>';
+  state.loadError = null; state.offlineSince = null;
   try {
-    state.data = normalize(await fetchRaw(cfg, fixtureName));
-    state.warnings = validate(state.data);
-    // Dữ liệu mẫu dùng ngày của chính nó để kết quả luôn giống nhau; dữ liệu thật dùng ngày hôm nay.
-    state.today = cfg.mode === 'fixture' && state.data.generatedAt ? state.data.generatedAt.slice(0, 10) : todayLocal();
-    render();
+    const raw = await fetchRaw(cfg, fixtureName);
+    state.data = normalize(raw);
+    if (cfg.mode === 'live') writeLast(raw);
   } catch (e) {
-    $('#warnings').innerHTML = '';
-    $('#view').innerHTML = `<div class="err"><p><b>Không tải được dữ liệu.</b></p><p>${esc(e.message)}</p><button type="button" id="retry">Thử lại</button></div>`;
+    state.loadError = e.message;
+    const last = cfg.mode === 'live' ? readLast() : null;
+    try {
+      if (!last) throw e;
+      state.data = normalize(last.raw);
+      state.offlineSince = last.savedAt; // mất mạng/lỗi: xem tạm bản đã lưu, nói rõ cho người dùng
+    } catch {
+      state.data = null;
+      if (currentTab() === 'caidat') { render(); return; }
+      $('#warnings').innerHTML = '';
+      $('#view').innerHTML = `<div class="err"><p><b>Không tải được dữ liệu.</b></p><p>${esc(e.message)}</p><button type="button" id="retry">Thử lại</button> <a class="lnk" href="#caidat">Mở Cài đặt</a></div>`;
+      return;
+    }
   }
+  state.warnings = validate(state.data);
+  // Dữ liệu mẫu dùng ngày của chính nó để kết quả luôn giống nhau; dữ liệu thật dùng ngày hôm nay.
+  state.today = cfg.mode === 'fixture' && state.data.generatedAt ? state.data.generatedAt.slice(0, 10) : todayLocal();
+  render();
+}
+
+function saveSettings() {
+  const url = document.getElementById('cfgUrl').value.trim();
+  const typed = document.getElementById('cfgKey').value.trim();
+  const msg = document.getElementById('cfgMsg');
+  const err = checkDataUrl(url);
+  if (err) { msg.textContent = err; return; }
+  const key = typed || readStored()?.dataKey || '';
+  if (!key) { msg.textContent = 'Hãy nhập khóa truy cập.'; return; }
+  if (!writeStored({ dataUrl: url, dataKey: key })) { msg.textContent = 'Không lưu được trên thiết bị này (có thể đang bật chế độ riêng tư).'; return; }
+  cfg = resolveConfig(window.APP_CONFIG, readStored());
+  location.hash = 'tongquan';
+  load();
 }
 
 document.addEventListener('click', (e) => {
@@ -123,7 +160,14 @@ document.addEventListener('click', (e) => {
   const ex = e.target.closest('[data-export]');
   if (ex) doExport(ex.dataset.export);
   if (e.target.closest('#retry, #refresh')) load();
+  if (e.target.closest('#cfgSave')) saveSettings();
+  if (e.target.closest('#cfgClear')) { clearStored(); cfg = resolveConfig(window.APP_CONFIG, null); location.hash = 'tongquan'; load(); }
+  if (e.target.closest('#cacheClear')) { clearLast(); render(); const m = document.getElementById('cacheMsg'); if (m) m.textContent = 'Đã xóa.'; }
 });
 window.addEventListener('hashchange', render);
 window.matchMedia?.('(prefers-color-scheme: dark)').addEventListener?.('change', render);
 load();
+
+if ('serviceWorker' in navigator && (location.hostname !== 'localhost' || location.search.includes('sw=1'))) {
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+}

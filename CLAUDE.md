@@ -41,7 +41,7 @@ SPL và Momo VTS: luôn trả toàn bộ, không có số tối thiểu (để t
 - M2 (xong): màn Tổng quan (`overview.js`, tab mặc định): dư nợ hiện tại, quá hạn chưa có ghi nhận, đến hạn trong 7 ngày; tách Trang/Dũng. Giao diện đổi sang hồng pastel (token màu ở đầu `styles.css`; xanh mint = Đã xác nhận, vàng = Ước tính, đỏ = cảnh báo/quá hạn).
 - M3 (xong): tab Báo cáo (`report.js`, `charts.js`): cột chồng 7 tháng, tròn theo đơn vị (Tháng này / 7 tháng), chi tiết từng tháng, theo bộ lọc người.
 - M4 (xong): trong tab Báo cáo có nút chuyển "Dự kiến 7 tháng" / "Lịch sử dư nợ" (biểu đồ đường); nút Tải CSV và Lưu ảnh cho từng màn.
-- M5: hoàn thiện PWA (manifest, service worker, icon), kiểm tra Chrome Android + Safari iPhone, hướng dẫn deploy Netlify/GitHub Pages.
+- M5 (xong): PWA (manifest, service worker, icon), màn Cài đặt (nhập địa chỉ + khóa trên máy), xem bản đã lưu khi mất mạng, workflow GitHub Pages + `netlify.toml`, hướng dẫn trong README.
 
 ## Quy tắc nghiệp vụ đã chốt (M2)
 - **Dư nợ hiện tại** (người dùng chọn "cách 1") = Khoản vay còn lại + Thẻ dư nợ kỳ. Nhãn **Ước tính**, kèm số **Đến kỳ** (Đã xác nhận).
@@ -70,3 +70,10 @@ SPL và Momo VTS: luôn trả toàn bộ, không có số tối thiểu (để t
 - **CSV**: dấu `;`, UTF-8 có BOM, CRLF (mở đúng trên Excel/Sheet tiếng Việt). Có cột nhãn cho mọi số. Số 0/thiếu là ô trống. Chọn "Tất cả" thì xuất thêm khối Trang và Dũng riêng. Hai loại: dự kiến 7 tháng, lịch sử dư nợ.
 - **Ảnh PNG**: tiêu đề + biểu đồ + chú giải có nhãn + ghi chú; theo giao diện sáng/tối đang dùng. Lưu bằng hộp chia sẻ của điện thoại (Web Share) nếu có, không thì tải xuống. Trong trang xem thử trên claude.ai, tải xuống bị chặn (chỉ chạy được khi mở app thật).
 - Dữ liệu mẫu có lịch sử Th8–Th10/2026; tháng 8 cố ý thiếu dư nợ thẻ để thử hiển thị "Chưa có".
+
+## Quy tắc đã chốt (M5 - PWA + triển khai)
+- **Cấu hình nguồn dữ liệu**: ưu tiên (1) cấu hình nhập trong app, lưu `localStorage` (`sono.cfg`); (2) `.env` lúc dev/build (`window.APP_CONFIG`); (3) dữ liệu mẫu. Bản triển khai KHÔNG chứa địa chỉ/khóa (workflow không dùng secrets): trang công khai chỉ hiện dữ liệu mẫu cho tới khi người dùng nhập địa chỉ + khóa trên thiết bị. Lý do: trên GitHub Pages mọi thứ trong trang đều công khai, nhúng khóa vào build thì ai mở `config.js` cũng đọc được Sheet. `.env` vẫn dùng cho chạy thử trên máy.
+- **Ngoại tuyến**: service worker (`public/sw.js`, build.mjs gắn danh sách tệp + mã phiên bản) lưu khung app, không lưu dữ liệu Google. Dữ liệu thật lần tải gần nhất lưu riêng trong `localStorage` (`sono.last`); khi lỗi mạng app mở bản đó kèm biểu ngữ "Đang xem bản đã lưu lúc …" (không bao giờ im lặng dùng số cũ). Màn Cài đặt có nút xóa. SW chỉ đăng ký khi không phải localhost (hoặc `?sw=1`).
+- **iPhone/Safari**: phải thêm bằng Safari; có `apple-touch-icon`, meta apple-mobile-web-app-*, ô nhập cỡ chữ 16px (tránh tự phóng to), vùng an toàn `env(safe-area-inset-*)`.
+- **Triển khai**: `.github/workflows/pages.yml` (test -> build -> Pages) chạy khi đẩy lên `main`; cần bật Settings > Pages > Source = GitHub Actions. Repo phải Public để Pages miễn phí; trước khi đẩy lên repo công khai cần gỡ mã Sheet và thông tin riêng khỏi `CLAUDE.md` nếu người dùng muốn.
+- Chưa kiểm tra trên thiết bị thật: Chrome Android và Safari iPhone mới chỉ chạy giả lập (Chromium Pixel 7 / iPhone 14); workflow GitHub Actions chưa chạy thật.

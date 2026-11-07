@@ -190,8 +190,34 @@ function reportScreen(d, person, ctx) {
     ${v === 'history' ? historyView(d, person, ctx) : forecastView(d, person, ctx)}`;
 }
 
+function settingsView(ctx) {
+  const c = ctx.cfg;
+  const where = { demo: 'Dữ liệu mẫu (chưa nối Google Sheet)', device: 'Google Sheet thật (cấu hình lưu trên máy này)', env: 'Google Sheet thật (cấu hình lúc chạy thử)' }[c.source];
+  return `<div class="card"><h2 class="ct">Nguồn dữ liệu</h2>
+      <p class="sub">Đang dùng: <b>${esc(where)}</b></p>
+      ${ctx.loadError ? `<p class="note err-note">Lần tải gần nhất lỗi: ${esc(ctx.loadError)}</p>` : ''}
+      <div class="fld"><label for="cfgUrl">Địa chỉ ứng dụng web (Apps Script)</label>
+        <input id="cfgUrl" type="url" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="https://script.google.com/macros/s/…/exec" value="${esc(c.source === 'device' ? c.dataUrl : '')}"></div>
+      <div class="fld"><label for="cfgKey">Khóa truy cập</label>
+        <input id="cfgKey" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="${c.source === 'device' ? 'Đã lưu. Để trống nếu không đổi' : 'Chuỗi bí mật (APP_KEY)'}"></div>
+      <div class="exp"><button type="button" id="cfgSave">Lưu và tải lại</button><button type="button" id="cfgClear">Dùng dữ liệu mẫu</button></div>
+      <p id="cfgMsg" class="note" role="status"></p>
+      <p class="note">Địa chỉ và khóa chỉ được lưu trên thiết bị này, không nằm trong trang web. Mỗi thiết bị nhập một lần.</p>
+    </div>
+    <div class="card"><h2 class="ct">Cài lên màn hình chính</h2>
+      <p class="sub"><b>Android (Chrome):</b> bấm menu ⋮ rồi chọn "Cài đặt ứng dụng" hoặc "Thêm vào màn hình chính".</p>
+      <p class="sub"><b>iPhone (Safari):</b> bấm nút Chia sẻ rồi chọn "Thêm vào Màn hình chính". Phải dùng Safari, không dùng Chrome.</p>
+    </div>
+    <div class="card"><h2 class="ct">Dữ liệu lưu trên máy</h2>
+      <p class="sub">${ctx.lastSaved ? `Bản sao lần tải gần nhất lúc ${esc(ctx.lastSaved)}, dùng để xem khi mất mạng.` : 'Chưa có bản sao nào.'}</p>
+      <div class="exp"><button type="button" id="cacheClear">Xóa dữ liệu đã lưu</button></div>
+      <p id="cacheMsg" class="note" role="status"></p>
+    </div>`;
+}
+
 export const TABS = [
   { id: 'tongquan', label: 'Tổng quan', render: overview },
+  { id: 'caidat', label: 'Cài đặt', hidden: true, render: (d, p, ctx) => settingsView(ctx) },
   { id: 'baocao', label: 'Báo cáo', render: reportScreen },
   { id: 'vay', label: 'Khoản vay', render: (d, p) => grouped(filterPerson(d.khoanVay, p), p, loanCard) },
   { id: 'the', label: 'Thẻ', render: (d, p) => grouped(filterPerson(d.the, p), p, cardCard) },

@@ -1,0 +1,4 @@
+# Phương án thay thế: Netlify (đăng nhập bằng GitHub, chọn repo; không cần nhập gì thêm)
+[build]
+  command = "node scripts/build.mjs"
+  publish = "dist"
