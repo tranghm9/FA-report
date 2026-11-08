@@ -110,3 +110,14 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 .lnk { color: var(--brand); margin-left: 8px; }
 :focus-visible { outline: 3px solid var(--brand); outline-offset: 2px; }
 [hidden] { display: none !important; }
+
+/* Bảo mật: màn khóa */
+.lock { position: fixed; inset: 0; z-index: 20; background: var(--bg); display: flex; align-items: center; justify-content: center; padding: 24px var(--gx-r) 24px var(--gx-l); }
+.lock[hidden] { display: none; }
+.lock-box { width: 100%; max-width: 360px; text-align: center; display: flex; flex-direction: column; gap: 10px; }
+.lock-box h1 { font-size: 22px; }
+.lock-box input { font: inherit; font-size: 22px; letter-spacing: .3em; text-align: center; min-height: 52px; border: 1px solid var(--line); border-radius: 12px; background: var(--card); color: var(--text); width: 100%; }
+.lock-box button#pinOk { min-height: 48px; border: 0; border-radius: 12px; background: var(--brand); color: var(--on-brand); font: inherit; font-weight: 700; }
+.lnkbtn { background: none; border: 0; color: var(--muted); font: inherit; font-size: 13px; text-decoration: underline; min-height: 40px; }
+.is-locked .top, .is-locked main, .is-locked .nav { display: none !important; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }

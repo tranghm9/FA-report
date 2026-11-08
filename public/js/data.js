@@ -63,6 +63,6 @@ export async function fetchRaw(cfg, fixtureName = 'sample') {
   if (!res.ok) throw new Error(`Máy chủ trả lỗi ${res.status}.`);
   let json;
   try { json = await res.json(); } catch { throw new Error('Dữ liệu trả về không đọc được (không phải JSON).'); }
-  if (json.ok === false) throw new Error(json.error === 'unauthorized' ? 'Sai khóa truy cập (DATA_KEY không khớp APP_KEY).' : `Lỗi từ Google Sheet: ${json.error}`);
+  if (json.ok === false) throw new Error(json.error === 'unauthorized' ? 'Sai khóa truy cập (không khớp APP_KEY trong Apps Script).' : json.error === 'weak-key' ? 'APP_KEY trong Apps Script quá ngắn (cần ít nhất 12 ký tự). Hãy đặt lại rồi triển khai phiên bản mới.' : `Lỗi từ Google Sheet: ${json.error}`);
   return json;
 }

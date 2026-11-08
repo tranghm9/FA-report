@@ -80,3 +80,9 @@ SPL và Momo VTS: luôn trả toàn bộ, không có số tối thiểu (để t
 
 ## Giao diện sáng/tối (do người dùng chọn)
 - Cài đặt > Giao diện: Theo điện thoại | Sáng | Tối, lưu `localStorage` (`sono.theme`). Sáng/Tối gắn `data-theme` lên `<html>` (đè prefers-color-scheme); "Theo điện thoại" gỡ thuộc tính do app gắn. Script nhỏ trong `<head>` áp dụng ngay khi tải để không nháy màu; `theme-color` đổi theo. Đổi giao diện phải render lại để biểu đồ đọc lại biến màu `--ch-*`.
+
+## Bảo mật (đã chốt)
+- **Khóa PIN tùy chọn** (`secure.js`, Cài đặt > Bảo mật): PIN 6–12 chữ số; AES-GCM 256 + PBKDF2-SHA256 200k vòng; kho `sono.vault` chứa {cfg, last}. Khi bật, bản rõ (`sono.cfg`, `sono.last`) bị xóa; khi đang khóa, bộ nhớ không giữ địa chỉ/khóa/dữ liệu và DOM bị xóa sạch. Tự khóa khi rời app > 60 giây (`visibilitychange`). Sai 3 lần liên tiếp thì chờ 5s, 10s, 20s… tối đa 300s (chỉ là rào cản, kẻ có bản sao bộ nhớ vẫn đoán offline được). Quên PIN = `wipe()` (xóa sạch, 2 lần bấm). Mọi truy cập cấu hình/bản sao dữ liệu phải đi qua `secure` (không gọi trực tiếp `settings.js`).
+- **CSP** (thẻ meta trong `index.html`): script chỉ 'self'; connect chỉ `script.google.com` + `script.googleusercontent.com`; không script nhúng (giao diện sáng/tối ở `js/theme-init.js`). Thêm nguồn dữ liệu khác phải sửa CSP. `referrer: no-referrer`.
+- **Apps Script**: `APP_KEY` < 12 ký tự bị từ chối (`weak-key`); so khóa kiểu thời gian không đổi; sai khóa thì `Utilities.sleep(1500)`. App cũng bắt khóa ≥ 12 ký tự khi lưu.
+- Việc khác chưa làm: xoay khóa tự động, hạn chế theo IP (Apps Script không hỗ trợ), PIN dài/passphrase (hiện chỉ số).

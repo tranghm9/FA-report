@@ -199,6 +199,18 @@ function settingsView(ctx) {
       <p class="sub">Chọn sáng hoặc tối cho app, không phụ thuộc chế độ của điện thoại.</p>
       <div class="seg" role="group" aria-label="Giao diện">${themeBtn('system', 'Theo điện thoại')}${themeBtn('light', 'Sáng')}${themeBtn('dark', 'Tối')}</div>
     </div>
+    <div class="card"><h2 class="ct">Bảo mật</h2>
+      ${ctx.secEnabled ? `<p class="sub">Khóa bằng mã PIN: <b>đang bật</b>. Địa chỉ, khóa và dữ liệu lưu trên máy đều được mã hóa. App tự khóa khi bạn rời đi hơn 1 phút.</p>
+        <div class="exp"><button type="button" id="secNow">Khóa ngay</button></div>
+        <div class="fld"><label for="secPinCur">Nhập mã PIN để tắt khóa</label><input id="secPinCur" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="12" autocomplete="off"></div>
+        <div class="exp"><button type="button" id="secOff">Tắt khóa</button></div>`
+      : `<p class="sub">${c.mode === 'live' ? '<b>Nên bật.</b> ' : ''}Đặt mã PIN để người khác cầm điện thoại không xem được số nợ. Địa chỉ, khóa và dữ liệu lưu trên máy sẽ được mã hóa.</p>
+        <div class="fld"><label for="secPin">Mã PIN mới (6 đến 12 chữ số)</label><input id="secPin" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="12" autocomplete="off"></div>
+        <div class="fld"><label for="secPin2">Nhập lại mã PIN</label><input id="secPin2" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="12" autocomplete="off"></div>
+        <div class="exp"><button type="button" id="secOn">Bật khóa bằng mã PIN</button></div>`}
+      <p id="secMsg" class="note" role="status"></p>
+      <p class="note">Mã PIN chỉ lưu trong đầu bạn, không ai khôi phục được. Nếu quên, bạn phải xóa dữ liệu trên máy và nhập lại địa chỉ và khóa. PIN ngăn được người cầm máy xem lén, nhưng không thay được việc giữ điện thoại có khóa màn hình.</p>
+    </div>
     <div class="card"><h2 class="ct">Nguồn dữ liệu</h2>
       <p class="sub">Đang dùng: <b>${esc(where)}</b></p>
       ${ctx.loadError ? `<p class="note err-note">Lần tải gần nhất lỗi: ${esc(ctx.loadError)}</p>` : ''}

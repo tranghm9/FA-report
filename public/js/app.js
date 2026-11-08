@@ -8,9 +8,12 @@ import { buildReport, unitShares, monthLong, kindOf } from './report.js';
 import { dateVN, money, TAG } from './format.js';
 import { TABS, warningsView, esc } from './views.js';
 
-import { readTheme, writeTheme, applyTheme, readStored, writeStored, clearStored, readLast, writeLast, clearLast, resolveConfig, checkDataUrl } from './settings.js';
+import { readTheme, writeTheme, applyTheme, resolveConfig, checkDataUrl } from './settings.js';
+import { createSecure, PIN_RE } from './secure.js';
 
-let cfg = resolveConfig(window.APP_CONFIG, readStored());
+const secure = createSecure();
+const AUTO_LOCK_MS = 60000; // rời app quá 1 phút thì tự khóa
+let cfg = resolveConfig(window.APP_CONFIG, secure.getCfg());
 let theme = readTheme();
 const prefersDark = () => !!window.matchMedia?.('(prefers-color-scheme: dark)').matches;
 const setTheme = (mode) => applyTheme(mode, { root: document.documentElement, meta: document.querySelector('meta[name="theme-color"]'), prefersDark: prefersDark() });
@@ -107,7 +110,7 @@ function render() {
     ? `<div class="offline">${esc(state.loadError)} Đang xem bản đã lưu lúc ${esc(fmtTime(state.offlineSince))}.</div>` : '';
   $('#warnings').innerHTML = settings ? '' : offline + warningsView(state.warnings);
   $('#view').innerHTML = tab.render(state.data, state.person, {
-    cfg, theme, loadError: state.loadError, lastSaved: fmtTime(readLast()?.savedAt), today: state.today, demo: cfg.mode === 'fixture', pieScope: state.pieScope, reportView: state.reportView });
+    cfg, theme, loadError: state.loadError, lastSaved: fmtTime(secure.getLast()?.savedAt), secEnabled: secure.enabled, today: state.today, demo: cfg.mode === 'fixture', pieScope: state.pieScope, reportView: state.reportView });
   drawCharts();
   $('#nav').innerHTML = TABS.filter((t) => !t.hidden).map((t) => `<a href="#${t.id}" ${t.id === state.tab ? 'aria-current="page"' : ''}>${esc(t.label)}</a>`).join('');
 }
@@ -118,10 +121,10 @@ async function load() {
   try {
     const raw = await fetchRaw(cfg, fixtureName);
     state.data = normalize(raw);
-    if (cfg.mode === 'live') writeLast(raw);
+    if (cfg.mode === 'live') await secure.setLast(raw);
   } catch (e) {
     state.loadError = e.message;
-    const last = cfg.mode === 'live' ? readLast() : null;
+    const last = cfg.mode === 'live' ? secure.getLast() : null;
     try {
       if (!last) throw e;
       state.data = normalize(last.raw);
@@ -140,21 +143,92 @@ async function load() {
   render();
 }
 
-function saveSettings() {
+async function saveSettings() {
   const url = document.getElementById('cfgUrl').value.trim();
   const typed = document.getElementById('cfgKey').value.trim();
   const msg = document.getElementById('cfgMsg');
   const err = checkDataUrl(url);
   if (err) { msg.textContent = err; return; }
-  const key = typed || readStored()?.dataKey || '';
+  const key = typed || secure.getCfg()?.dataKey || '';
   if (!key) { msg.textContent = 'Hãy nhập khóa truy cập.'; return; }
-  if (!writeStored({ dataUrl: url, dataKey: key })) { msg.textContent = 'Không lưu được trên thiết bị này (có thể đang bật chế độ riêng tư).'; return; }
-  cfg = resolveConfig(window.APP_CONFIG, readStored());
+  if (key.length < 12) { msg.textContent = 'Khóa quá ngắn. Hãy đặt APP_KEY dài ít nhất 12 ký tự trong Apps Script rồi nhập lại ở đây.'; return; }
+  if (!(await secure.setCfg({ dataUrl: url, dataKey: key }))) { msg.textContent = 'Không lưu được trên thiết bị này (có thể đang bật chế độ riêng tư).'; return; }
+  cfg = resolveConfig(window.APP_CONFIG, secure.getCfg());
   location.hash = 'tongquan';
   load();
 }
 
-document.addEventListener('click', (e) => {
+// ---------- khóa ứng dụng ----------
+const lockEl = () => document.getElementById('lock');
+let fails = 0, lockedUntil = 0, wipeArmed = false;
+
+function showLock() {
+  state.data = null; state.warnings = []; state.offlineSince = null;
+  destroyCharts();
+  cfg = resolveConfig(window.APP_CONFIG, null); // không giữ địa chỉ/khóa trong bộ nhớ khi đang khóa
+  for (const id of ['#view', '#warnings', '#nav', '#meta', '#people']) $(id).innerHTML = '';
+  document.body.classList.add('is-locked');
+  lockEl().hidden = false;
+  document.getElementById('pin').value = '';
+  document.getElementById('pinMsg').textContent = '';
+  wipeArmed = false; document.getElementById('pinForgot').textContent = 'Quên mã PIN';
+  document.getElementById('pin').focus();
+}
+function lockApp() { secure.lock(); showLock(); }
+
+async function tryUnlock() {
+  const msg = document.getElementById('pinMsg');
+  const wait = Math.ceil((lockedUntil - Date.now()) / 1000);
+  if (wait > 0) { msg.textContent = `Thử lại sau ${wait} giây.`; return; }
+  const pin = document.getElementById('pin').value;
+  if (!PIN_RE.test(pin)) { msg.textContent = 'Mã PIN gồm 6 đến 12 chữ số.'; return; }
+  if (await secure.unlock(pin)) {
+    fails = 0; lockedUntil = 0;
+    lockEl().hidden = true; document.body.classList.remove('is-locked');
+    cfg = resolveConfig(window.APP_CONFIG, secure.getCfg());
+    load();
+    return;
+  }
+  fails++;
+  document.getElementById('pin').value = '';
+  if (fails >= 3) { const sec = Math.min(300, 5 * 2 ** (fails - 3)); lockedUntil = Date.now() + sec * 1000; msg.textContent = `Sai mã PIN. Chờ ${sec} giây rồi thử lại.`; }
+  else msg.textContent = 'Sai mã PIN.';
+}
+
+function forgotPin() {
+  const b = document.getElementById('pinForgot');
+  if (!wipeArmed) { wipeArmed = true; b.textContent = 'Bấm lần nữa để XÓA mọi dữ liệu và địa chỉ đã lưu trên máy này'; return; }
+  secure.wipe();
+  cfg = resolveConfig(window.APP_CONFIG, null);
+  lockEl().hidden = true; document.body.classList.remove('is-locked');
+  location.hash = 'caidat';
+  load();
+}
+
+async function enableLock() {
+  const a = document.getElementById('secPin').value, b = document.getElementById('secPin2').value, msg = document.getElementById('secMsg');
+  if (!PIN_RE.test(a)) { msg.textContent = 'Mã PIN gồm 6 đến 12 chữ số.'; return; }
+  if (a !== b) { msg.textContent = 'Hai lần nhập mã PIN chưa giống nhau.'; return; }
+  msg.textContent = 'Đang bật khóa…';
+  try { await secure.enable(a); } catch (e) { msg.textContent = e.message; return; }
+  render();
+  document.getElementById('secMsg').textContent = 'Đã bật khóa. App sẽ tự khóa khi bạn rời đi hơn 1 phút.';
+}
+
+async function disableLock() {
+  const msg = document.getElementById('secMsg');
+  msg.textContent = 'Đang kiểm tra…';
+  if (await secure.disable(document.getElementById('secPinCur').value)) { render(); document.getElementById('secMsg').textContent = 'Đã tắt khóa.'; }
+  else msg.textContent = 'Sai mã PIN.';
+}
+
+let hiddenAt = 0;
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) { hiddenAt = Date.now(); return; }
+  if (secure.enabled && !secure.locked && hiddenAt && Date.now() - hiddenAt > AUTO_LOCK_MS) lockApp();
+});
+
+document.addEventListener('click', async (e) => {
   const p = e.target.closest('[data-person]');
   if (p) { state.person = p.dataset.person; render(); }
   const pie = e.target.closest('[data-pie]');
@@ -167,12 +241,18 @@ document.addEventListener('click', (e) => {
   const th = e.target.closest('[data-theme-set]');
   if (th) { theme = th.dataset.themeSet; writeTheme(theme); setTheme(theme); render(); } // render lại để biểu đồ lấy màu mới
   if (e.target.closest('#cfgSave')) saveSettings();
-  if (e.target.closest('#cfgClear')) { clearStored(); cfg = resolveConfig(window.APP_CONFIG, null); location.hash = 'tongquan'; load(); }
-  if (e.target.closest('#cacheClear')) { clearLast(); render(); const m = document.getElementById('cacheMsg'); if (m) m.textContent = 'Đã xóa.'; }
+  if (e.target.closest('#pinOk')) tryUnlock();
+  if (e.target.closest('#pinForgot')) forgotPin();
+  if (e.target.closest('#secOn')) enableLock();
+  if (e.target.closest('#secOff')) disableLock();
+  if (e.target.closest('#secNow')) lockApp();
+  if (e.target.closest('#cfgClear')) { await secure.clearCfg(); cfg = resolveConfig(window.APP_CONFIG, null); location.hash = 'tongquan'; load(); }
+  if (e.target.closest('#cacheClear')) { await secure.clearLast(); render(); const m = document.getElementById('cacheMsg'); if (m) m.textContent = 'Đã xóa.'; }
 });
+document.addEventListener('keydown', (e) => { if (e.key === 'Enter' && e.target.id === 'pin') tryUnlock(); });
 window.addEventListener('hashchange', render);
 window.matchMedia?.('(prefers-color-scheme: dark)').addEventListener?.('change', () => { setTheme(theme); render(); });
-load();
+if (secure.locked) showLock(); else load();
 
 if ('serviceWorker' in navigator && (location.hostname !== 'localhost' || location.search.includes('sw=1'))) {
   navigator.serviceWorker.register('sw.js').catch(() => {});
