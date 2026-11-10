@@ -86,3 +86,6 @@ SPL và Momo VTS: luôn trả toàn bộ, không có số tối thiểu (để t
 - **CSP** (thẻ meta trong `index.html`): script chỉ 'self'; connect chỉ `script.google.com` + `script.googleusercontent.com`; không script nhúng (giao diện sáng/tối ở `js/theme-init.js`). Thêm nguồn dữ liệu khác phải sửa CSP. `referrer: no-referrer`.
 - **Apps Script**: `APP_KEY` < 12 ký tự bị từ chối (`weak-key`); so khóa kiểu thời gian không đổi; sai khóa thì `Utilities.sleep(1500)`. App cũng bắt khóa ≥ 12 ký tự khi lưu.
 - Việc khác chưa làm: xoay khóa tự động, hạn chế theo IP (Apps Script không hỗ trợ), PIN dài/passphrase (hiện chỉ số).
+
+## Tài liệu bàn giao
+- `docs/INTEGRATION.md`: hướng dẫn lấy lại logic/tính năng của app này vào dự án khác (bảng module, hợp đồng dữ liệu, hàm gọi, quy tắc bắt buộc, số chuẩn để kiểm tra). Cập nhật tài liệu này khi đổi API hoặc quy tắc nghiệp vụ.
